@@ -5,6 +5,7 @@ import {
   addDoc,
   deleteDoc,
   doc,
+  updateDoc,
 } from "firebase/firestore";
 import { useCallback, useEffect, useState } from "react";
 import { db } from "./firebase";
@@ -15,15 +16,14 @@ function Users() {
   const [n1, setN1] = useState(0);
   const [n2, setN2] = useState(0);
   const [users, setUsers] = useState([]);
+  const [editingId, setEditingId] = useState(null);
 
   const getUsers = useCallback(async function () {
     const q = query(collection(db, "user"));
 
     const querySnapshot = await getDocs(q);
-    //   console.log(querySnapshot);
     const data = [];
     querySnapshot.forEach((doc) => {
-      // doc.data() is never undefined for query doc snapshots
       data.push({ id: doc.id, ...doc.data() });
     });
     setUsers(data);
@@ -39,12 +39,42 @@ function Users() {
       email,
       numbers: [n1, n2],
     });
+    setName("");
+    setEmail("");
+    setN1(0);
+    setN2(0);
     getUsers();
   }
 
-  async function deleteUser(userId) {
+  async function onEditSave(user) {
+    if (editingId === user.id) {
+      await updateDoc(doc(db, "user", user.id), {
+        name: user.name,
+        email: user.email,
+        numbers: user.numbers,
+      });
+      setEditingId(null);
+    } else {
+      setEditingId(user.id);
+    }
+    getUsers();
+  }
+
+  async function onDelete(userId) {
     await deleteDoc(doc(db, "user", userId));
     getUsers();
+  }
+
+  function handleInputChange(userId, field, value) {
+    setUsers((prevUsers) =>
+      prevUsers.map((user) =>
+        user.id === userId
+          ? field === "numbers"
+            ? { ...user, numbers: value }
+            : { ...user, [field]: value }
+          : user
+      )
+    );
   }
 
   return (
@@ -52,21 +82,25 @@ function Users() {
       <div>
         <input
           type="text"
+          placeholder="Email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
         />
         <input
           type="text"
+          placeholder="Name"
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
         <input
-          type="text"
+          type="number"
+          placeholder="N1"
           value={n1}
           onChange={(e) => setN1(+e.target.value)}
         />
         <input
-          type="text"
+          type="number"
+          placeholder="N2"
           value={n2}
           onChange={(e) => setN2(+e.target.value)}
         />
@@ -96,12 +130,69 @@ function Users() {
           {users.map((user) => (
             <tr key={user.id}>
               <td>{user.id}</td>
-              <td>{user.name}</td>
-              <td>{user.email}</td>
-              <td>{user.numbers[0]}</td>
-              <td>{user.numbers[1]}</td>
               <td>
-                <button onClick={() => deleteUser(user.id)}>X</button>
+                {editingId === user.id ? (
+                  <input
+                    type="text"
+                    value={user.name}
+                    onChange={(e) =>
+                      handleInputChange(user.id, "name", e.target.value)
+                    }
+                  />
+                ) : (
+                  user.name
+                )}
+              </td>
+              <td>
+                {editingId === user.id ? (
+                  <input
+                    type="text"
+                    value={user.email}
+                    onChange={(e) =>
+                      handleInputChange(user.id, "email", e.target.value)
+                    }
+                  />
+                ) : (
+                  user.email
+                )}
+              </td>
+              <td>
+                {editingId === user.id ? (
+                  <input
+                    type="number"
+                    value={user.numbers[0]}
+                    onChange={(e) =>
+                      handleInputChange(user.id, "numbers", [
+                        +e.target.value,
+                        user.numbers[1],
+                      ])
+                    }
+                  />
+                ) : (
+                  user.numbers[0]
+                )}
+              </td>
+              <td>
+                {editingId === user.id ? (
+                  <input
+                    type="number"
+                    value={user.numbers[1]}
+                    onChange={(e) =>
+                      handleInputChange(user.id, "numbers", [
+                        user.numbers[0],
+                        +e.target.value,
+                      ])
+                    }
+                  />
+                ) : (
+                  user.numbers[1]
+                )}
+              </td>
+              <td>
+                <button onClick={() => onEditSave(user)}>
+                  {editingId === user.id ? "Save" : "Edit"}
+                </button>
+                <button onClick={() => onDelete(user.id)}>X</button>
               </td>
             </tr>
           ))}
