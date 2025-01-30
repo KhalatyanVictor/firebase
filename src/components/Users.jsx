@@ -8,7 +8,7 @@ import {
   updateDoc,
 } from "firebase/firestore";
 import { useCallback, useEffect, useState } from "react";
-import { db } from "./firebase";
+import { db } from "../firebase/firebase";
 
 function Users() {
   const [email, setEmail] = useState("");
@@ -62,6 +62,7 @@ function Users() {
 
   async function onDelete(userId) {
     await deleteDoc(doc(db, "user", userId));
+    
     getUsers();
   }
 
