@@ -1,10 +1,12 @@
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { useState } from "react";
 import { auth } from "../firebase/firebase";
+import { useNavigate } from "react-router-dom";
 
 function SignIn() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const navigate = useNavigate();
 
   function handleEmailChange(e) {
     setEmail(e.target.value);
@@ -16,9 +18,7 @@ function SignIn() {
   function onSignInClick() {
     signInWithEmailAndPassword(auth, email, password)
       .then((userCredential) => {
-        // Signed in
         const user = userCredential.user;
-        // ...
       })
       .catch((error) => {
         const errorCode = error.code;
@@ -40,6 +40,11 @@ function SignIn() {
         onChange={handlePasswordChange}
       />
       <button onClick={onSignInClick}>Sign In</button>
+      <button
+        onClick={() => {
+          navigate("/signup");
+        }}
+      >{`Don't have account Yet?`}</button>
     </div>
   );
 }

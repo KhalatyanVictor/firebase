@@ -6,9 +6,18 @@ import {
   deleteDoc,
   doc,
   updateDoc,
+  limit,
+  startAfter,
+  getCountFromServer,
+  where,
 } from "firebase/firestore";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { db } from "../firebase/firebase";
+import Typography from "@mui/material/Typography";
+import Pagination from "@mui/material/Pagination";
+import Stack from "@mui/material/Stack";
+import { debounce } from "lodash";
+const USERS_PER_PAGE = 3;
 
 function Users() {
   const [email, setEmail] = useState("");
@@ -17,11 +26,65 @@ function Users() {
   const [n2, setN2] = useState(0);
   const [users, setUsers] = useState([]);
   const [editingId, setEditingId] = useState(null);
+  const [page, setPage] = useState(1);
+  const snapshots = useRef([]);
+  const [allUsersCount, setAllUsersCount] = useState(0);
+  const [search, setSearch] = useState("");
+  const [dSearch, setDSearch] = useState(search);
 
-  const getUsers = useCallback(async function () {
-    const q = query(collection(db, "user"));
+  // eslint-disable-next-line
+  const debounceFunction = useCallback(
+    debounce((search) => {
+      setDSearch(search);
+    }, 1000),
+    []
+  );
+  useEffect(() => {
+    debounceFunction(search);
+  }, [search, debounceFunction]);
+  const getTotalCount = useCallback(async (search) => {
+    const collRef = search
+      ? query(collection(db, "user"), where("name", "==", search))
+      : collection(db, "user");
+    const snapshot = await getCountFromServer(collRef);
+    setAllUsersCount(snapshot.data().count);
+  }, []);
+
+  useEffect(() => {
+    getTotalCount(dSearch);
+  }, [getTotalCount, dSearch]);
+
+  const handleChange = (event, value) => {
+    setPage(value);
+  };
+
+  const getUsers = useCallback(async function (p, search) {
+    let q = search
+      ? query(
+          collection(db, "user"),
+          limit(USERS_PER_PAGE),
+          where("name", "==", search)
+        )
+      : query(collection(db, "user"), limit(USERS_PER_PAGE));
+    if (p !== 1) {
+      const lastVisible =
+        snapshots.current.docs[snapshots.current.docs.length - 1];
+      q = search
+        ? query(
+            collection(db, "user"),
+            limit(USERS_PER_PAGE),
+            startAfter(lastVisible),
+            where("name", "==", search)
+          )
+        : query(
+            collection(db, "user"),
+            limit(USERS_PER_PAGE),
+            startAfter(lastVisible)
+          );
+    }
 
     const querySnapshot = await getDocs(q);
+    snapshots.current = querySnapshot;
     const data = [];
     querySnapshot.forEach((doc) => {
       data.push({ id: doc.id, ...doc.data() });
@@ -30,8 +93,8 @@ function Users() {
   }, []);
 
   useEffect(() => {
-    getUsers();
-  }, [getUsers]);
+    getUsers(page, dSearch);
+  }, [getUsers, page, dSearch]);
 
   async function onAddClick() {
     await addDoc(collection(db, "user"), {
@@ -62,7 +125,7 @@ function Users() {
 
   async function onDelete(userId) {
     await deleteDoc(doc(db, "user", userId));
-    
+
     getUsers();
   }
 
@@ -77,6 +140,8 @@ function Users() {
       )
     );
   }
+
+  console.log(users);
 
   return (
     <>
@@ -107,6 +172,11 @@ function Users() {
         />
         <button onClick={onAddClick}>Add</button>
       </div>
+      <input
+        type="text"
+        value={search}
+        onChange={(e) => setSearch(e.target.value)}
+      />
       <table>
         <thead>
           <tr>
@@ -199,6 +269,14 @@ function Users() {
           ))}
         </tbody>
       </table>
+      <Stack spacing={2}>
+        <Typography>Page: {page}</Typography>
+        <Pagination
+          count={Math.ceil(allUsersCount / USERS_PER_PAGE)}
+          page={page}
+          onChange={handleChange}
+        />
+      </Stack>
     </>
   );
 }

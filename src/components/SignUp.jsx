@@ -1,10 +1,12 @@
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { useState } from "react";
 import { auth } from "../firebase/firebase";
+import { useNavigate } from "react-router-dom";
 
 function SignUp() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const navigate = useNavigate();
 
   function handleEmailChange(e) {
     setEmail(e.target.value);
@@ -16,18 +18,14 @@ function SignUp() {
   function onSignUpClick() {
     createUserWithEmailAndPassword(auth, email, password)
       .then((userCredential) => {
-        // Signed up
         const user = userCredential.user;
         console.log(userCredential);
-
-        // ...
       })
       .catch((error) => {
         console.log(error);
 
         const errorCode = error.code;
         const errorMessage = error.message;
-        // ..
       });
   }
 
@@ -46,6 +44,11 @@ function SignUp() {
         onChange={handlePasswordChange}
       />
       <button onClick={onSignUpClick}>Sign Up</button>
+      <button
+        onClick={() => {
+          navigate("/");
+        }}
+      >{`Already have an account?`}</button>
     </div>
   );
 }

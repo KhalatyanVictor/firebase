@@ -3,9 +3,16 @@ import "./App.css";
 import Header from "./components/Header";
 import SignIn from "./components/SignIn";
 import SignUp from "./components/SignUp";
-import Users from "./components/Users";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "./firebase/firebase";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+} from "react-router-dom";
+import Both from "./components/Both";
+import Users from "./components/Users";
 
 function App() {
   const [loggedInUser, setLoggedInUser] = useState(null);
@@ -13,39 +20,54 @@ function App() {
   useEffect(() => {
     onAuthStateChanged(auth, (user) => {
       if (user) {
-        // User is signed in, see docs for a list of available properties
-        // https://firebase.google.com/docs/reference/js/auth.user
         const uid = user.uid;
-        console.log("User Exists:::", user);
         setLoggedInUser(user);
-
-        // ...
       } else {
-        console.log("User Not Exist");
         setLoggedInUser(null);
-        // User is signed out
-        // ...
       }
     });
-  }, []);
+  }, [loggedInUser]);
+
+
+
   return (
     <>
-      <h1>ACA-Group-Project</h1>
-      <Header loggedInUser={loggedInUser} />
-      <br />
-      <br />
-      <br />
-      <SignUp />
-      <br />
-      <br />
-      <br />
-      <SignIn />
-      <br />
-      <br />
-      <br />
-      <Users />
+      {/* <h1>ACA-Group-Project</h1> */}
+      <Conditional />
     </>
   );
 }
 
 export default App;
+
+
+function Conditional() {
+  return <Users />;
+//   if (loggedInUser !== null) {
+//     return (
+//       <>
+//         <Router>
+//           <Header loggedInUser={loggedInUser} />
+//           <Routes>
+//             <Route path="/" element={<Both />} />
+//             <Route path="*" element={<Navigate to="/" />} />
+//           </Routes>
+//         </Router>
+//       </>
+//     );
+//   } else {
+//     return (
+//       <>
+//         <Router>
+//           <Header loggedInUser={loggedInUser} />
+//           <Routes>
+//             <Route path="/signin" element={<SignIn />} />
+//             <Route path="/signup" element={<SignUp />} />
+//             <Route path="*" element={<Navigate to="/signin" />} />
+//           </Routes>
+//         </Router>
+//       </>
+//     );
+//   }
+// }
+}

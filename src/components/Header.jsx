@@ -4,11 +4,9 @@ import { auth } from "../firebase/firebase";
 function Header({ loggedInUser }) {
   function onLogOutClick() {
     signOut(auth)
-      .then(() => {
-        // Sign-out successful.
-      })
+      .then(() => {})
       .catch((error) => {
-        // An error happened.
+        console.error(error);
       });
   }
   return (
